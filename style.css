@@ -27,7 +27,7 @@ body {
 .keyboard-wrapper {
     display: flex;
     gap: 20px;
-    align-items: flex-start;
+    align-items: flex-end;
 }
 
 .keyboard {
@@ -216,7 +216,6 @@ body {
     flex-direction: column;
     gap: 8px;
     align-items: center;
-    justify-content: flex-end;
 }
 
 .arrow-row {
