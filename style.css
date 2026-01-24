@@ -39,7 +39,6 @@ body {
 .row {
     display: flex;
     gap: 8px;
-    justify-content: center;
 }
 
 .key {
