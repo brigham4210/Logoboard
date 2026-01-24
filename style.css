@@ -76,13 +76,9 @@ body {
     min-width: 300px;
 }
 
-.key.tab {
-    min-width: 90px;
-}
-
 .key.caps,
 .key.enter {
-    min-width: 100px;
+    min-width: 95px;
 }
 
 .key.shift-left,
@@ -90,8 +86,9 @@ body {
     min-width: 110px;
 }
 
+.key.tab,
 .key.backspace {
-    min-width: 90px;
+    min-width: 80px;
 }
 
 .key.ctrl,
