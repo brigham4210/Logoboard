@@ -77,12 +77,18 @@ body {
     min-width: 300px;
 }
 
-.key.tab,
+.key.tab {
+    min-width: 90px;
+}
+
 .key.caps,
-.key.enter,
+.key.enter {
+    min-width: 100px;
+}
+
 .key.shift-left,
 .key.shift-right {
-    min-width: 80px;
+    min-width: 110px;
 }
 
 .key.backspace {
