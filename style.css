@@ -24,6 +24,12 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.keyboard-wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
 .keyboard {
     display: flex;
     flex-direction: column;
@@ -202,4 +208,52 @@ body {
 
 .footer p {
     margin: 0;
+}
+
+/* Arrow section */
+.arrow-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.arrow-row {
+    display: flex;
+    gap: 8px;
+}
+
+.key.arrow {
+    min-width: 50px;
+    font-size: 20px;
+}
+
+/* Number Pad */
+.numpad {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.numpad-row {
+    display: flex;
+    gap: 8px;
+    position: relative;
+}
+
+.key.numpad-plus {
+    position: absolute;
+    right: 0;
+    height: 108px;
+}
+
+.key.numpad-enter {
+    position: absolute;
+    right: 0;
+    height: 108px;
+}
+
+.key.numpad-zero {
+    min-width: 108px;
 }

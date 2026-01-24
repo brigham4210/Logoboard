@@ -16,6 +16,7 @@
     <div class="keyboard-container">
         <h1 class="title">Interactive Keyboard</h1>
         
+        <div class="keyboard-wrapper">
         <div class="keyboard">
             <!-- Row 1: Number row -->
             <div class="row">
@@ -97,6 +98,51 @@
                 <div class="key ctrl" data-key="ControlRight">Ctrl</div>
             </div>
         </div>
+        
+        <!-- Arrow Keys -->
+        <div class="arrow-section">
+            <div class="arrow-row">
+                <div class="key arrow" data-key="ArrowUp">↑</div>
+            </div>
+            <div class="arrow-row">
+                <div class="key arrow" data-key="ArrowLeft">←</div>
+                <div class="key arrow" data-key="ArrowDown">↓</div>
+                <div class="key arrow" data-key="ArrowRight">→</div>
+            </div>
+        </div>
+        
+        <!-- Number Pad -->
+        <div class="numpad">
+                <div class="numpad-row">
+                    <div class="key" data-key="NumLock">Num</div>
+                    <div class="key" data-key="Numpad/">/</div>
+                    <div class="key" data-key="Numpad*">*</div>
+                    <div class="key" data-key="Numpad-">-</div>
+                </div>
+                <div class="numpad-row">
+                    <div class="key" data-key="Numpad7">7</div>
+                    <div class="key" data-key="Numpad8">8</div>
+                    <div class="key" data-key="Numpad9">9</div>
+                    <div class="key numpad-plus" data-key="Numpad+" rowspan="2">+</div>
+                </div>
+                <div class="numpad-row">
+                    <div class="key" data-key="Numpad4">4</div>
+                    <div class="key" data-key="Numpad5">5</div>
+                    <div class="key" data-key="Numpad6">6</div>
+                </div>
+                <div class="numpad-row">
+                    <div class="key" data-key="Numpad1">1</div>
+                    <div class="key" data-key="Numpad2">2</div>
+                    <div class="key" data-key="Numpad3">3</div>
+                    <div class="key numpad-enter" data-key="NumpadEnter" rowspan="2">Enter</div>
+                </div>
+                <div class="numpad-row">
+                    <div class="key numpad-zero" data-key="Numpad0">0</div>
+                    <div class="key" data-key="Numpad.">.</div>
+                </div>
+            </div>
+        </div>
+        
         <p class="instruction">Start typing or click the keys to interact!<br>
         <small>Double-click a key to upload an image | Right-click to reset to default | Double-click a topic to rename</small></p>
     </div>
