@@ -1,4 +1,4 @@
-# Interactive Keyboard
+# Logoboard
 
 A visual, interactive keyboard application that allows you to customize keys with images and organize them into topics. Perfect for learning keyboard layouts, creating visual guides, or just having fun!
 
