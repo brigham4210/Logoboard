@@ -482,13 +482,40 @@ function handleCalculatorClick(e) {
 
 // Handle number inputs
 function handleNumber(num) {
-    if (shouldResetDisplay || currentValue === '0') {
+    // If the display shows an error, reset it
+    if (currentValue === 'Error') {
         currentValue = num === '.' ? '0.' : num;
         shouldResetDisplay = false;
-    } else {
-        if (num === '.' && currentValue.includes('.')) return;
-        currentValue += num;
+        updateDisplay();
+        return;
     }
+    
+    // If we should reset display and it's not a parenthesis
+    if (shouldResetDisplay && num !== '(' && num !== ')') {
+        currentValue = num === '.' ? '0.' : num;
+        shouldResetDisplay = false;
+        updateDisplay();
+        return;
+    }
+    
+    // If starting fresh with '0'
+    if (currentValue === '0' && num !== '.' && num !== '(' && num !== ')') {
+        currentValue = num;
+        updateDisplay();
+        return;
+    }
+    
+    // Append to current value
+    if (num === '.' && !shouldResetDisplay) {
+        // Check if we already have a decimal in the current number segment
+        const lastNumMatch = currentValue.match(/[\d.]+$/);
+        if (lastNumMatch && lastNumMatch[0].includes('.')) {
+            return; // Already has decimal
+        }
+    }
+    
+    currentValue += num;
+    shouldResetDisplay = false;
     updateDisplay();
 }
 
@@ -501,6 +528,7 @@ function handleAction(action) {
             currentValue = '0';
             previousValue = null;
             operation = null;
+            shouldResetDisplay = false;
             break;
             
         case 'backspace':
@@ -516,38 +544,57 @@ function handleAction(action) {
             break;
             
         case 'sin':
-            currentValue = Math.sin(current * Math.PI / 180).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'sin(';
+            } else {
+                currentValue += 'sin(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'cos':
-            currentValue = Math.cos(current * Math.PI / 180).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'cos(';
+            } else {
+                currentValue += 'cos(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'tan':
-            currentValue = Math.tan(current * Math.PI / 180).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'tan(';
+            } else {
+                currentValue += 'tan(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'sqrt':
-            currentValue = Math.sqrt(current).toString();
-            shouldResetDisplay = true;
-            break;
-            
-        case 'power':
-            currentValue = Math.pow(current, 2).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'sqrt(';
+            } else {
+                currentValue += 'sqrt(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'log':
-            currentValue = Math.log10(current).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'log(';
+            } else {
+                currentValue += 'log(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'ln':
-            currentValue = Math.log(current).toString();
-            shouldResetDisplay = true;
+            if (currentValue === '0' || shouldResetDisplay) {
+                currentValue = 'ln(';
+            } else {
+                currentValue += 'ln(';
+            }
+            shouldResetDisplay = false;
             break;
             
         case 'e':
@@ -564,24 +611,101 @@ function handleAction(action) {
         case 'subtract':
         case 'multiply':
         case 'divide':
-            if (previousValue !== null && operation !== null && !shouldResetDisplay) {
-                calculate();
+        case 'power':
+            const opSymbol = action === 'add' ? '+' : 
+                            action === 'subtract' ? '-' : 
+                            action === 'multiply' ? '*' : 
+                            action === 'divide' ? '/' : '^';
+            
+            // Always append operator to build expression
+            if (currentValue === '0') {
+                currentValue = '0' + opSymbol;
+            } else {
+                currentValue += opSymbol;
             }
-            previousValue = parseFloat(currentValue);
-            operation = action;
-            shouldResetDisplay = true;
+            shouldResetDisplay = false;
             break;
             
         case 'equals':
-            if (previousValue !== null && operation !== null) {
-                calculate();
-                operation = null;
+            // Always evaluate as an expression
+            try {
+                const result = evaluateExpression(currentValue);
+                currentValue = result.toString();
+                shouldResetDisplay = true;
                 previousValue = null;
+                operation = null;
+            } catch (e) {
+                console.error('Evaluation error:', e);
+                currentValue = 'Error';
+                shouldResetDisplay = true;
+                previousValue = null;
+                operation = null;
             }
             break;
     }
     
     updateDisplay();
+}
+
+// Evaluate mathematical expressions with functions
+function evaluateExpression(expr) {
+    try {
+        // Handle simple number case
+        const simpleNum = parseFloat(expr);
+        if (!isNaN(simpleNum) && !/[a-z\(\)\+\-\*\/\^]/.test(expr)) {
+            return simpleNum;
+        }
+        
+        // Replace display symbols with JavaScript operators
+        let processedExpr = expr
+            .replace(/×/g, '*')
+            .replace(/÷/g, '/')
+            .replace(/−/g, '-')
+            .replace(/\^/g, '**');
+        
+        // Handle trig functions with degree to radian conversion
+        processedExpr = processedExpr.replace(/sin\(([^)]+)\)/g, (match, p1) => {
+            return `Math.sin((Math.PI/180)*(${p1}))`;
+        });
+        processedExpr = processedExpr.replace(/cos\(([^)]+)\)/g, (match, p1) => {
+            return `Math.cos((Math.PI/180)*(${p1}))`;
+        });
+        processedExpr = processedExpr.replace(/tan\(([^)]+)\)/g, (match, p1) => {
+            return `Math.tan((Math.PI/180)*(${p1}))`;
+        });
+        
+        // Handle other math functions
+        processedExpr = processedExpr.replace(/sqrt\(([^)]+)\)/g, (match, p1) => {
+            return `Math.sqrt(${p1})`;
+        });
+        processedExpr = processedExpr.replace(/log\(([^)]+)\)/g, (match, p1) => {
+            return `Math.log10(${p1})`;
+        });
+        processedExpr = processedExpr.replace(/ln\(([^)]+)\)/g, (match, p1) => {
+            return `Math.log(${p1})`;
+        });
+        
+        // Replace constants
+        processedExpr = processedExpr
+            .replace(/π/g, 'Math.PI')
+            .replace(/\be\b/g, 'Math.E');
+        
+        console.log('Original:', expr);
+        console.log('Processed:', processedExpr);
+        
+        // Safely evaluate the expression
+        const result = Function('"use strict"; return (' + processedExpr + ')')();
+        
+        if (isNaN(result) || !isFinite(result)) {
+            throw new Error('Invalid result');
+        }
+        
+        return result;
+    } catch (e) {
+        console.error('Expression evaluation error:', e);
+        console.error('Expression:', expr);
+        throw new Error('Invalid expression');
+    }
 }
 
 // Perform calculation
@@ -603,6 +727,9 @@ function calculate() {
         case 'divide':
             result = prev / current;
             break;
+        case 'power':
+            result = Math.pow(prev, current);
+            break;
         default:
             return;
     }
@@ -614,16 +741,21 @@ function calculate() {
 // Update calculator display
 function updateDisplay() {
     if (calcDisplay) {
-        const displayValue = parseFloat(currentValue);
-        // Format the display value
-        if (currentValue.includes('.') && currentValue.endsWith('.')) {
+        // Check if it's an expression or error - show as-is
+        if (currentValue === 'Error' || /[a-z\(\)\+\-\*\/\^]/.test(currentValue)) {
             calcDisplay.textContent = currentValue;
-        } else if (!isNaN(displayValue)) {
-            // Round to avoid floating point errors
-            const rounded = Math.round(displayValue * 1000000000) / 1000000000;
-            calcDisplay.textContent = rounded.toString();
         } else {
-            calcDisplay.textContent = currentValue;
+            // Show numbers formatted
+            const displayValue = parseFloat(currentValue);
+            if (currentValue.includes('.') && currentValue.endsWith('.')) {
+                calcDisplay.textContent = currentValue;
+            } else if (!isNaN(displayValue)) {
+                // Round to avoid floating point errors
+                const rounded = Math.round(displayValue * 1000000000) / 1000000000;
+                calcDisplay.textContent = rounded.toString();
+            } else {
+                calcDisplay.textContent = currentValue;
+            }
         }
     }
 }

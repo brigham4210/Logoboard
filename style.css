@@ -383,6 +383,10 @@ body {
     color: white;
 }
 
+.calc-equals-wide {
+    grid-column: span 3;
+}
+
 .equals-btn:hover {
     background: linear-gradient(135deg, #00e676, #00c853);
 }
