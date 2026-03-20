@@ -65,7 +65,7 @@ function saveImagesToStorage() {
             imagesData[keyValue] = keyImages.get(key);
         }
     });
-    localStorage.setItem(`keyboardImages_${currentTopic}`, JSON.stringify(imagesData));
+    localStorage.setItem(`logoboardImages_${currentTopic}`, JSON.stringify(imagesData));
     console.log('Saved images for topic', currentTopic, ':', imagesData);
 }
 
@@ -77,7 +77,7 @@ function loadSavedImages() {
     });
     keyImages.clear();
     
-    const savedImages = localStorage.getItem(`keyboardImages_${currentTopic}`);
+    const savedImages = localStorage.getItem(`logoboardImages_${currentTopic}`);
     console.log('Loading saved images for topic', currentTopic, ':', savedImages);
     if (savedImages) {
         try {
@@ -97,7 +97,7 @@ function loadSavedImages() {
 
 // Initialize topics
 function initTopics() {
-    const savedTopics = localStorage.getItem('keyboardTopics');
+    const savedTopics = localStorage.getItem('logoboardTopics');
     if (savedTopics) {
         topics = JSON.parse(savedTopics);
     }
@@ -115,7 +115,7 @@ function initTopics() {
 
 // Save topics to localStorage
 function saveTopics() {
-    localStorage.setItem('keyboardTopics', JSON.stringify(topics));
+    localStorage.setItem('logoboardTopics', JSON.stringify(topics));
 }
 
 // Render topic tabs
@@ -210,7 +210,7 @@ function deleteTopic(topicId) {
         topics = topics.filter(t => t.id !== topicId);
         
         // Delete topic images from localStorage
-        localStorage.removeItem(`keyboardImages_${topicId}`);
+        localStorage.removeItem(`logoboardImages_${topicId}`);
         
         if (currentTopic === topicId) {
             currentTopic = topics[0].id;
@@ -228,7 +228,7 @@ document.getElementById('addTopicBtn').addEventListener('click', addTopic);
 // Load saved images on page load
 initTopics();
 
-// Handle keyboard events
+// Handle logoboard events
 document.addEventListener('keydown', (e) => {
     let keyElement = null;
     

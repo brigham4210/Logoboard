@@ -1,6 +1,6 @@
 # Logoboard
 
-A visual, interactive keyboard application that allows you to customize keys with images and organize them into topics. Perfect for learning keyboard layouts, creating visual guides, or just having fun!
+A visual, interactive logoboard application that allows you to customize keys with images and organize them into topics. Perfect for learning logoboard layouts, creating visual guides, or just having fun!
 
 ## Features
 
@@ -11,16 +11,16 @@ A visual, interactive keyboard application that allows you to customize keys wit
 - Images automatically fill the entire key without repeating
 
 ### 📁 Topic Management
-- Create multiple topics, each with its own keyboard layout
+- Create multiple topics, each with its own logoboard layout
 - **Add new topics** with custom names
 - **Double-click a topic tab** to rename it
 - **Delete topics** using the × button (must keep at least one)
 - Switch between topics instantly
 - Each topic saves its own set of key images
 
-### ⌨️ Interactive Keyboard
+### ⌨️ Interactive Logoboard
 - Visual feedback when typing or clicking keys
-- Full keyboard support including special keys (Shift, Ctrl, Alt, etc.)
+- Full logoboard support including special keys (Shift, Ctrl, Alt, etc.)
 - Responsive design with smooth animations
 - Beautiful gradient effects and hover states
 
@@ -30,9 +30,9 @@ A visual, interactive keyboard application that allows you to customize keys wit
 1. Open `index.html` in your web browser
 2. Start typing to see keys light up
 3. Double-click any key to upload an image
-4. Create topics to organize different keyboard layouts
+4. Create topics to organize different logoboard layouts
 
-### Keyboard Shortcuts
+### Logoboard Shortcuts
 - **Type**: Keys highlight automatically when pressed
 - **Double-click key**: Upload image to that key
 - **Right-click key**: Reset key to default appearance
@@ -59,7 +59,7 @@ Works best in modern browsers:
 
 ## License
 
-Copyright © 2025 Interactive Keyboard. All rights reserved.
+Copyright © 2025 Interactive Logoboard. All rights reserved.
 
 ## Contributing
 
