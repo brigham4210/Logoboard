@@ -337,3 +337,203 @@ fileInput.addEventListener('change', (e) => {
     // Reset file input
     fileInput.value = '';
 });
+
+// ============================================
+// CALCULATOR FUNCTIONALITY
+// ============================================
+
+let currentMode = 'logoboard'; // 'logoboard' or 'calculator'
+let calcDisplay = null;
+let currentValue = '0';
+let previousValue = null;
+let operation = null;
+let shouldResetDisplay = false;
+
+// Initialize calculator when DOM is ready
+function initCalculator() {
+    calcDisplay = document.getElementById('calcDisplay');
+    const calcButtons = document.querySelectorAll('.calc-btn');
+    
+    calcButtons.forEach(button => {
+        button.addEventListener('click', handleCalculatorClick);
+    });
+}
+
+// Handle calculator button clicks
+function handleCalculatorClick(e) {
+    const button = e.target;
+    const action = button.getAttribute('data-action');
+    const value = button.getAttribute('data-value');
+    
+    if (value !== null) {
+        handleNumber(value);
+    } else if (action) {
+        handleAction(action);
+    }
+}
+
+// Handle number inputs
+function handleNumber(num) {
+    if (shouldResetDisplay || currentValue === '0') {
+        currentValue = num === '.' ? '0.' : num;
+        shouldResetDisplay = false;
+    } else {
+        if (num === '.' && currentValue.includes('.')) return;
+        currentValue += num;
+    }
+    updateDisplay();
+}
+
+// Handle calculator actions
+function handleAction(action) {
+    const current = parseFloat(currentValue);
+    
+    switch(action) {
+        case 'clear':
+            currentValue = '0';
+            previousValue = null;
+            operation = null;
+            break;
+            
+        case 'backspace':
+            if (currentValue.length > 1) {
+                currentValue = currentValue.slice(0, -1);
+            } else {
+                currentValue = '0';
+            }
+            break;
+            
+        case 'percent':
+            currentValue = (current / 100).toString();
+            break;
+            
+        case 'sin':
+            currentValue = Math.sin(current * Math.PI / 180).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'cos':
+            currentValue = Math.cos(current * Math.PI / 180).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'tan':
+            currentValue = Math.tan(current * Math.PI / 180).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'sqrt':
+            currentValue = Math.sqrt(current).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'power':
+            currentValue = Math.pow(current, 2).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'log':
+            currentValue = Math.log10(current).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'ln':
+            currentValue = Math.log(current).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'pi':
+            currentValue = Math.PI.toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'add':
+        case 'subtract':
+        case 'multiply':
+        case 'divide':
+            if (previousValue !== null && operation !== null && !shouldResetDisplay) {
+                calculate();
+            }
+            previousValue = parseFloat(currentValue);
+            operation = action;
+            shouldResetDisplay = true;
+            break;
+            
+        case 'equals':
+            if (previousValue !== null && operation !== null) {
+                calculate();
+                operation = null;
+                previousValue = null;
+            }
+            break;
+    }
+    
+    updateDisplay();
+}
+
+// Perform calculation
+function calculate() {
+    const prev = previousValue;
+    const current = parseFloat(currentValue);
+    let result;
+    
+    switch(operation) {
+        case 'add':
+            result = prev + current;
+            break;
+        case 'subtract':
+            result = prev - current;
+            break;
+        case 'multiply':
+            result = prev * current;
+            break;
+        case 'divide':
+            result = prev / current;
+            break;
+        default:
+            return;
+    }
+    
+    currentValue = result.toString();
+    shouldResetDisplay = true;
+}
+
+// Update calculator display
+function updateDisplay() {
+    if (calcDisplay) {
+        const displayValue = parseFloat(currentValue);
+        // Format the display value
+        if (currentValue.includes('.') && currentValue.endsWith('.')) {
+            calcDisplay.textContent = currentValue;
+        } else if (!isNaN(displayValue)) {
+            // Round to avoid floating point errors
+            const rounded = Math.round(displayValue * 1000000000) / 1000000000;
+            calcDisplay.textContent = rounded.toString();
+        } else {
+            calcDisplay.textContent = currentValue;
+        }
+    }
+}
+
+// Mode switching functionality
+function switchMode() {
+    const logoboardContainer = document.getElementById('logoboardContainer');
+    const calculatorContainer = document.getElementById('calculatorContainer');
+    
+    if (currentMode === 'logoboard') {
+        logoboardContainer.style.display = 'none';
+        calculatorContainer.style.display = 'block';
+        currentMode = 'calculator';
+    } else {
+        logoboardContainer.style.display = 'block';
+        calculatorContainer.style.display = 'none';
+        currentMode = 'logoboard';
+    }
+}
+
+// Initialize calculator
+initCalculator();
+
+// Add event listeners for mode switch buttons
+document.getElementById('modeSwitchBtn').addEventListener('click', switchMode);
+document.getElementById('modeSwitchBtn2').addEventListener('click', switchMode);
