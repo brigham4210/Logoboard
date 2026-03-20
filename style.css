@@ -332,6 +332,7 @@ body {
     cursor: pointer;
     transition: all 0.15s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    user-select: none;
 }
 
 .calc-btn:hover {
@@ -342,6 +343,12 @@ body {
 .calc-btn:active {
     transform: translateY(2px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.calc-btn[data-has-image="true"] {
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .num-btn {
@@ -374,24 +381,8 @@ body {
 .equals-btn {
     background: linear-gradient(135deg, #00c853, #00e676);
     color: white;
-    grid-column: span 1;
 }
 
 .equals-btn:hover {
     background: linear-gradient(135deg, #00e676, #00c853);
-}
-
-.calc-subtract {
-    grid-column: 4;
-    grid-row: 5;
-}
-
-.calc-add {
-    grid-column: 4;
-    grid-row: 6;
-}
-
-.equals-btn {
-    grid-column: 4;
-    grid-row: 7;
 }

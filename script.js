@@ -13,6 +13,10 @@ keys.forEach(key => {
 const keyOriginalContent = new Map();
 const keyImages = new Map();
 
+// Store original content and custom images for calculator buttons
+const calcBtnOriginalContent = new Map();
+const calcBtnImages = new Map();
+
 // Topic management
 let currentTopic = null;
 let topics = [];
@@ -29,7 +33,8 @@ fileInput.accept = 'image/*';
 fileInput.style.display = 'none';
 document.body.appendChild(fileInput);
 
-let currentKeyForImage = null;
+let currentElementForImage = null;
+let currentElementType = null; // 'key' or 'calcBtn'
 
 // Function to apply image to key
 function applyImageToKey(key, imgUrl) {
@@ -39,6 +44,16 @@ function applyImageToKey(key, imgUrl) {
     key.style.backgroundRepeat = 'no-repeat';
     key.style.color = 'transparent';
     key.setAttribute('data-has-image', 'true');
+}
+
+// Function to apply image to calculator button
+function applyImageToCalcBtn(btn, imgUrl) {
+    btn.style.backgroundImage = `url('${imgUrl}')`;
+    btn.style.backgroundSize = 'cover';
+    btn.style.backgroundPosition = 'center';
+    btn.style.backgroundRepeat = 'no-repeat';
+    btn.style.color = 'transparent';
+    btn.setAttribute('data-has-image', 'true');
 }
 
 // Function to reset key to original appearance
@@ -56,6 +71,21 @@ function resetKeyToOriginal(key, save = true) {
     }
 }
 
+// Function to reset calculator button to original appearance
+function resetCalcBtnToOriginal(btn, save = true) {
+    btn.style.backgroundImage = '';
+    btn.style.backgroundSize = '';
+    btn.style.backgroundRepeat = '';
+    btn.style.backgroundPosition = '';
+    btn.style.color = '';
+    btn.innerHTML = calcBtnOriginalContent.get(btn);
+    btn.removeAttribute('data-has-image');
+    calcBtnImages.delete(btn);
+    if (save) {
+        saveCalcBtnImagesToStorage();
+    }
+}
+
 // Save images to localStorage
 function saveImagesToStorage() {
     const imagesData = {};
@@ -67,6 +97,22 @@ function saveImagesToStorage() {
     });
     localStorage.setItem(`logoboardImages_${currentTopic}`, JSON.stringify(imagesData));
     console.log('Saved images for topic', currentTopic, ':', imagesData);
+}
+
+// Save calculator button images to localStorage
+function saveCalcBtnImagesToStorage() {
+    const imagesData = {};
+    const calcButtons = document.querySelectorAll('.calc-btn');
+    calcButtons.forEach(btn => {
+        const action = btn.getAttribute('data-action');
+        const value = btn.getAttribute('data-value');
+        const identifier = action || value;
+        if (identifier && calcBtnImages.has(btn)) {
+            imagesData[identifier] = calcBtnImages.get(btn);
+        }
+    });
+    localStorage.setItem('calcBtnImages', JSON.stringify(imagesData));
+    console.log('Saved calculator button images:', imagesData);
 }
 
 // Load saved images from localStorage
@@ -91,6 +137,36 @@ function loadSavedImages() {
             });
         } catch (e) {
             console.error('Error loading saved images:', e);
+        }
+    }
+}
+
+// Load saved calculator button images from localStorage
+function loadSavedCalcBtnImages() {
+    const calcButtons = document.querySelectorAll('.calc-btn');
+    
+    // Clear current images first
+    calcButtons.forEach(btn => {
+        resetCalcBtnToOriginal(btn, false);
+    });
+    calcBtnImages.clear();
+    
+    const savedImages = localStorage.getItem('calcBtnImages');
+    console.log('Loading saved calculator button images:', savedImages);
+    if (savedImages) {
+        try {
+            const imagesData = JSON.parse(savedImages);
+            calcButtons.forEach(btn => {
+                const action = btn.getAttribute('data-action');
+                const value = btn.getAttribute('data-value');
+                const identifier = action || value;
+                if (identifier && imagesData[identifier]) {
+                    calcBtnImages.set(btn, imagesData[identifier]);
+                    applyImageToCalcBtn(btn, imagesData[identifier]);
+                }
+            });
+        } catch (e) {
+            console.error('Error loading saved calculator button images:', e);
         }
     }
 }
@@ -308,7 +384,8 @@ keys.forEach(key => {
     // Double-click to upload image
     key.addEventListener('dblclick', (e) => {
         e.preventDefault();
-        currentKeyForImage = key;
+        currentElementForImage = key;
+        currentElementType = 'key';
         fileInput.click();
     });
     
@@ -321,15 +398,22 @@ keys.forEach(key => {
 
 // Handle file selection
 fileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0] && currentKeyForImage) {
+    if (e.target.files && e.target.files[0] && currentElementForImage) {
         const file = e.target.files[0];
         const reader = new FileReader();
         
         reader.onload = (event) => {
             const imgUrl = event.target.result;
-            keyImages.set(currentKeyForImage, imgUrl);
-            applyImageToKey(currentKeyForImage, imgUrl);
-            saveImagesToStorage();
+            
+            if (currentElementType === 'key') {
+                keyImages.set(currentElementForImage, imgUrl);
+                applyImageToKey(currentElementForImage, imgUrl);
+                saveImagesToStorage();
+            } else if (currentElementType === 'calcBtn') {
+                calcBtnImages.set(currentElementForImage, imgUrl);
+                applyImageToCalcBtn(currentElementForImage, imgUrl);
+                saveCalcBtnImagesToStorage();
+            }
         };
         
         reader.readAsDataURL(file);
@@ -354,9 +438,33 @@ function initCalculator() {
     calcDisplay = document.getElementById('calcDisplay');
     const calcButtons = document.querySelectorAll('.calc-btn');
     
+    // Store original content for each button
+    calcButtons.forEach(btn => {
+        calcBtnOriginalContent.set(btn, btn.innerHTML);
+    });
+    
     calcButtons.forEach(button => {
         button.addEventListener('click', handleCalculatorClick);
+        
+        // Double-click to upload image
+        button.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            currentElementForImage = button;
+            currentElementType = 'calcBtn';
+            fileInput.click();
+        });
+        
+        // Right-click to reset to original
+        button.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetCalcBtnToOriginal(button);
+        });
     });
+    
+    // Load saved images
+    loadSavedCalcBtnImages();
 }
 
 // Handle calculator button clicks
@@ -439,6 +547,11 @@ function handleAction(action) {
             
         case 'ln':
             currentValue = Math.log(current).toString();
+            shouldResetDisplay = true;
+            break;
+            
+        case 'e':
+            currentValue = Math.E.toString();
             shouldResetDisplay = true;
             break;
             

@@ -162,48 +162,50 @@
             <div class="calc-buttons">
                 <!-- Row 1: Functions -->
                 <button class="calc-btn func-btn" data-action="clear">C</button>
-                <button class="calc-btn func-btn" data-action="backspace">⌫</button>
-                <button class="calc-btn func-btn" data-action="percent">%</button>
-                <button class="calc-btn operator-btn" data-action="divide">÷</button>
-                
-                <!-- Row 2: Advanced functions -->
                 <button class="calc-btn func-btn" data-action="sin">sin</button>
                 <button class="calc-btn func-btn" data-action="cos">cos</button>
                 <button class="calc-btn func-btn" data-action="tan">tan</button>
-                <button class="calc-btn operator-btn" data-action="multiply">×</button>
+                
+                <!-- Row 2: Advanced functions -->
+                <button class="calc-btn func-btn" data-action="sqrt">√</button>
+                <button class="calc-btn func-btn" data-action="power">x²</button>
+                <button class="calc-btn func-btn" data-action="log">log</button>
+                <button class="calc-btn func-btn" data-action="ln">ln</button>
                 
                 <!-- Row 3: Numbers and operators -->
-                <button class="calc-btn func-btn" data-action="sqrt">√</button>
                 <button class="calc-btn num-btn" data-value="7">7</button>
                 <button class="calc-btn num-btn" data-value="8">8</button>
                 <button class="calc-btn num-btn" data-value="9">9</button>
+                <button class="calc-btn operator-btn" data-action="divide">÷</button>
                 
                 <!-- Row 4 -->
-                <button class="calc-btn func-btn" data-action="power">x²</button>
                 <button class="calc-btn num-btn" data-value="4">4</button>
                 <button class="calc-btn num-btn" data-value="5">5</button>
                 <button class="calc-btn num-btn" data-value="6">6</button>
+                <button class="calc-btn operator-btn" data-action="multiply">×</button>
                 
                 <!-- Row 5 -->
-                <button class="calc-btn func-btn" data-action="log">log</button>
                 <button class="calc-btn num-btn" data-value="1">1</button>
                 <button class="calc-btn num-btn" data-value="2">2</button>
                 <button class="calc-btn num-btn" data-value="3">3</button>
+                <button class="calc-btn operator-btn" data-action="subtract">−</button>
                 
                 <!-- Row 6 -->
-                <button class="calc-btn func-btn" data-action="ln">ln</button>
                 <button class="calc-btn num-btn" data-value="0">0</button>
                 <button class="calc-btn num-btn" data-value=".">.</button>
-                <button class="calc-btn func-btn" data-action="pi">π</button>
+                <button class="calc-btn func-btn" data-action="backspace">⌫</button>
+                <button class="calc-btn operator-btn" data-action="add">+</button>
                 
-                <!-- Operators column -->
-                <button class="calc-btn operator-btn calc-subtract" data-action="subtract">−</button>
-                <button class="calc-btn operator-btn calc-add" data-action="add">+</button>
+                <!-- Row 7: Bottom row -->
+                <button class="calc-btn func-btn" data-action="percent">%</button>
+                <button class="calc-btn func-btn" data-action="e">e</button>
+                <button class="calc-btn func-btn" data-action="pi">π</button>
                 <button class="calc-btn equals-btn" data-action="equals">=</button>
             </div>
         </div>
         
-        <p class="instruction">Click the buttons to perform calculations</p>
+        <p class="instruction">Click the buttons to perform calculations<br>
+        <small>Double-click a button to upload an image | Right-click to reset to default</small></p>
     </div>
 
     <footer class="footer">
