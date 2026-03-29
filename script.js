@@ -1,784 +1,464 @@
-const keys = document.querySelectorAll('.key');
+const keys = [...document.querySelectorAll('.key')];
+const calcButtons = [...document.querySelectorAll('.calc-btn')];
 
-// Create a map for easier key lookup
-const keyMap = new Map();
-keys.forEach(key => {
-    const keyValue = key.getAttribute('data-key');
-    if (keyValue) {
-        keyMap.set(keyValue.toLowerCase(), key);
-    }
-});
+const state = {
+    currentTopic: null,
+    topics: [],
+    currentMode: 'logoboard',
+    currentValue: '0',
+    shouldResetDisplay: false,
+    currentElementForImage: null,
+    currentElementType: null
+};
 
-// Store original content and custom images for keys
+const storageKeys = {
+    topics: 'logoboardTopics',
+    topicImages: id => `logoboardImages_${id}`,
+    calcImages: 'calcBtnImages'
+};
+
 const keyOriginalContent = new Map();
-const keyImages = new Map();
-
-// Store original content and custom images for calculator buttons
 const calcBtnOriginalContent = new Map();
+const keyImages = new Map();
 const calcBtnImages = new Map();
 
-// Topic management
-let currentTopic = null;
-let topics = [];
-
-// Store original content for each key
+const keyMap = new Map();
 keys.forEach(key => {
+    const keyValue = key.dataset.key;
+    if (keyValue) keyMap.set(keyValue.toLowerCase(), key);
     keyOriginalContent.set(key, key.innerHTML);
 });
 
-// Create hidden file input for image uploads
+calcButtons.forEach(btn => {
+    calcBtnOriginalContent.set(btn, btn.innerHTML);
+});
+
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.accept = 'image/*';
-fileInput.style.display = 'none';
+fileInput.hidden = true;
 document.body.appendChild(fileInput);
 
-let currentElementForImage = null;
-let currentElementType = null; // 'key' or 'calcBtn'
+const calcDisplay = document.getElementById('calcDisplay');
 
-// Function to apply image to key
-function applyImageToKey(key, imgUrl) {
-    key.style.backgroundImage = `url('${imgUrl}')`;
-    key.style.backgroundSize = 'cover';
-    key.style.backgroundPosition = 'center';
-    key.style.backgroundRepeat = 'no-repeat';
-    key.style.color = 'transparent';
-    key.setAttribute('data-has-image', 'true');
+const functionActions = new Set(['sin', 'cos', 'tan', 'sqrt', 'log', 'ln']);
+const operatorMap = {
+    add: '+',
+    subtract: '-',
+    multiply: '*',
+    divide: '/',
+    power: '^'
+};
+
+function getIdentifier(el, type) {
+    return type === 'key'
+        ? el.dataset.key
+        : el.dataset.action || el.dataset.value;
 }
 
-// Function to apply image to calculator button
-function applyImageToCalcBtn(btn, imgUrl) {
-    btn.style.backgroundImage = `url('${imgUrl}')`;
-    btn.style.backgroundSize = 'cover';
-    btn.style.backgroundPosition = 'center';
-    btn.style.backgroundRepeat = 'no-repeat';
-    btn.style.color = 'transparent';
-    btn.setAttribute('data-has-image', 'true');
+function getOriginalContent(el, type) {
+    return type === 'key'
+        ? keyOriginalContent.get(el)
+        : calcBtnOriginalContent.get(el);
 }
 
-// Function to reset key to original appearance
-function resetKeyToOriginal(key, save = true) {
-    key.style.backgroundImage = '';
-    key.style.backgroundSize = '';
-    key.style.backgroundRepeat = '';
-    key.style.backgroundPosition = '';
-    key.style.color = '';
-    key.innerHTML = keyOriginalContent.get(key);
-    key.removeAttribute('data-has-image');
-    keyImages.delete(key);
-    if (save) {
-        saveImagesToStorage();
-    }
+function getImageMap(type) {
+    return type === 'key' ? keyImages : calcBtnImages;
 }
 
-// Function to reset calculator button to original appearance
-function resetCalcBtnToOriginal(btn, save = true) {
-    btn.style.backgroundImage = '';
-    btn.style.backgroundSize = '';
-    btn.style.backgroundRepeat = '';
-    btn.style.backgroundPosition = '';
-    btn.style.color = '';
-    btn.innerHTML = calcBtnOriginalContent.get(btn);
-    btn.removeAttribute('data-has-image');
-    calcBtnImages.delete(btn);
-    if (save) {
-        saveCalcBtnImagesToStorage();
-    }
+function getElements(type) {
+    return type === 'key' ? keys : calcButtons;
 }
 
-// Save images to localStorage
-function saveImagesToStorage() {
-    const imagesData = {};
-    keys.forEach(key => {
-        const keyValue = key.getAttribute('data-key');
-        if (keyValue && keyImages.has(key)) {
-            imagesData[keyValue] = keyImages.get(key);
-        }
+function getStorageKey(type) {
+    return type === 'key'
+        ? storageKeys.topicImages(state.currentTopic)
+        : storageKeys.calcImages;
+}
+
+function applyImage(el, imgUrl) {
+    Object.assign(el.style, {
+        backgroundImage: `url('${imgUrl}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        color: 'transparent'
     });
-    localStorage.setItem(`logoboardImages_${currentTopic}`, JSON.stringify(imagesData));
-    console.log('Saved images for topic', currentTopic, ':', imagesData);
+    el.dataset.hasImage = 'true';
 }
 
-// Save calculator button images to localStorage
-function saveCalcBtnImagesToStorage() {
-    const imagesData = {};
-    const calcButtons = document.querySelectorAll('.calc-btn');
-    calcButtons.forEach(btn => {
-        const action = btn.getAttribute('data-action');
-        const value = btn.getAttribute('data-value');
-        const identifier = action || value;
-        if (identifier && calcBtnImages.has(btn)) {
-            imagesData[identifier] = calcBtnImages.get(btn);
-        }
+function resetElement(el, type, save = true) {
+    Object.assign(el.style, {
+        backgroundImage: '',
+        backgroundSize: '',
+        backgroundPosition: '',
+        backgroundRepeat: '',
+        color: ''
     });
-    localStorage.setItem('calcBtnImages', JSON.stringify(imagesData));
-    console.log('Saved calculator button images:', imagesData);
+    el.innerHTML = getOriginalContent(el, type);
+    el.removeAttribute('data-has-image');
+    getImageMap(type).delete(el);
+
+    if (save) saveImages(type);
 }
 
-// Load saved images from localStorage
-function loadSavedImages() {
-    // Clear current images first
-    keys.forEach(key => {
-        resetKeyToOriginal(key, false);
+function saveImages(type) {
+    const elements = getElements(type);
+    const images = getImageMap(type);
+    const data = {};
+
+    elements.forEach(el => {
+        const id = getIdentifier(el, type);
+        if (id && images.has(el)) data[id] = images.get(el);
     });
-    keyImages.clear();
-    
-    const savedImages = localStorage.getItem(`logoboardImages_${currentTopic}`);
-    console.log('Loading saved images for topic', currentTopic, ':', savedImages);
-    if (savedImages) {
-        try {
-            const imagesData = JSON.parse(savedImages);
-            keys.forEach(key => {
-                const keyValue = key.getAttribute('data-key');
-                if (keyValue && imagesData[keyValue]) {
-                    keyImages.set(key, imagesData[keyValue]);
-                    applyImageToKey(key, imagesData[keyValue]);
-                }
-            });
-        } catch (e) {
-            console.error('Error loading saved images:', e);
-        }
+
+    localStorage.setItem(getStorageKey(type), JSON.stringify(data));
+}
+
+function loadImages(type) {
+    const elements = getElements(type);
+    const images = getImageMap(type);
+
+    elements.forEach(el => resetElement(el, type, false));
+    images.clear();
+
+    const raw = localStorage.getItem(getStorageKey(type));
+    if (!raw) return;
+
+    try {
+        const data = JSON.parse(raw);
+        elements.forEach(el => {
+            const id = getIdentifier(el, type);
+            if (id && data[id]) {
+                images.set(el, data[id]);
+                applyImage(el, data[id]);
+            }
+        });
+    } catch (err) {
+        console.error(`Error loading ${type} images:`, err);
     }
 }
 
-// Load saved calculator button images from localStorage
-function loadSavedCalcBtnImages() {
-    const calcButtons = document.querySelectorAll('.calc-btn');
-    
-    // Clear current images first
-    calcButtons.forEach(btn => {
-        resetCalcBtnToOriginal(btn, false);
-    });
-    calcBtnImages.clear();
-    
-    const savedImages = localStorage.getItem('calcBtnImages');
-    console.log('Loading saved calculator button images:', savedImages);
-    if (savedImages) {
-        try {
-            const imagesData = JSON.parse(savedImages);
-            calcButtons.forEach(btn => {
-                const action = btn.getAttribute('data-action');
-                const value = btn.getAttribute('data-value');
-                const identifier = action || value;
-                if (identifier && imagesData[identifier]) {
-                    calcBtnImages.set(btn, imagesData[identifier]);
-                    applyImageToCalcBtn(btn, imagesData[identifier]);
-                }
-            });
-        } catch (e) {
-            console.error('Error loading saved calculator button images:', e);
-        }
-    }
-}
-
-// Initialize topics
-function initTopics() {
-    const savedTopics = localStorage.getItem('logoboardTopics');
-    if (savedTopics) {
-        topics = JSON.parse(savedTopics);
-    }
-    
-    if (topics.length === 0) {
-        topics.push({ id: Date.now(), name: 'Default' });
-        saveTopics();
-    }
-    
-    currentTopic = topics[0].id;
-    renderTopics();
-    loadSavedImages();
-    updateTitle();
-}
-
-// Save topics to localStorage
 function saveTopics() {
-    localStorage.setItem('logoboardTopics', JSON.stringify(topics));
+    localStorage.setItem(storageKeys.topics, JSON.stringify(state.topics));
 }
 
-// Render topic tabs
 function renderTopics() {
     const topicsList = document.getElementById('topicsList');
     topicsList.innerHTML = '';
-    
-    topics.forEach(topic => {
+
+    state.topics.forEach(topic => {
         const tab = document.createElement('div');
-        tab.className = 'topic-tab' + (topic.id === currentTopic ? ' active' : '');
+        tab.className = `topic-tab${topic.id === state.currentTopic ? ' active' : ''}`;
         tab.innerHTML = `
             <span class="topic-name" data-topic-id="${topic.id}">${topic.name}</span>
-            ${topics.length > 1 ? `<button class="delete-topic" data-topic-id="${topic.id}">×</button>` : ''}
+            ${state.topics.length > 1 ? `<button class="delete-topic" data-topic-id="${topic.id}">×</button>` : ''}
         `;
-        
-        tab.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('delete-topic')) {
-                switchTopic(topic.id);
-            }
+
+        tab.addEventListener('click', e => {
+            if (!e.target.classList.contains('delete-topic')) switchTopic(topic.id);
         });
-        
-        const topicName = tab.querySelector('.topic-name');
-        topicName.addEventListener('dblclick', (e) => {
+
+        tab.querySelector('.topic-name').addEventListener('dblclick', e => {
             e.stopPropagation();
             renameTopic(topic.id);
         });
-        
+
         const deleteBtn = tab.querySelector('.delete-topic');
         if (deleteBtn) {
-            deleteBtn.addEventListener('click', (e) => {
+            deleteBtn.addEventListener('click', e => {
                 e.stopPropagation();
                 deleteTopic(topic.id);
             });
         }
-        
+
         topicsList.appendChild(tab);
     });
 }
 
-// Update title with current topic name
 function updateTitle() {
-    const topic = topics.find(t => t.id === currentTopic);
-    if (topic) {
-        document.querySelector('.title').textContent = topic.name;
-    }
+    const topic = state.topics.find(t => t.id === state.currentTopic);
+    if (topic) document.querySelector('.title').textContent = topic.name;
 }
 
-// Switch to a different topic
 function switchTopic(topicId) {
-    currentTopic = topicId;
+    state.currentTopic = topicId;
     renderTopics();
-    loadSavedImages();
+    loadImages('key');
     updateTitle();
 }
 
-// Add new topic
 function addTopic() {
-    const topicName = prompt('Enter topic name:');
-    if (topicName && topicName.trim()) {
-        const newTopic = {
-            id: Date.now(),
-            name: topicName.trim()
-        };
-        topics.push(newTopic);
-        saveTopics();
-        switchTopic(newTopic.id);
-    }
+    const name = prompt('Enter topic name:')?.trim();
+    if (!name) return;
+
+    const topic = { id: Date.now(), name };
+    state.topics.push(topic);
+    saveTopics();
+    switchTopic(topic.id);
 }
 
-// Rename topic
 function renameTopic(topicId) {
-    const topic = topics.find(t => t.id === topicId);
+    const topic = state.topics.find(t => t.id === topicId);
     if (!topic) return;
-    
-    const newName = prompt('Enter new topic name:', topic.name);
-    if (newName && newName.trim() && newName.trim() !== topic.name) {
-        topic.name = newName.trim();
-        saveTopics();
-        renderTopics();
-        updateTitle();
-    }
+
+    const name = prompt('Enter new topic name:', topic.name)?.trim();
+    if (!name || name === topic.name) return;
+
+    topic.name = name;
+    saveTopics();
+    renderTopics();
+    updateTitle();
 }
 
-// Delete topic
 function deleteTopic(topicId) {
-    if (topics.length === 1) {
+    if (state.topics.length === 1) {
         alert('Cannot delete the last topic!');
         return;
     }
-    
-    if (confirm('Are you sure you want to delete this topic?')) {
-        topics = topics.filter(t => t.id !== topicId);
-        
-        // Delete topic images from localStorage
-        localStorage.removeItem(`logoboardImages_${topicId}`);
-        
-        if (currentTopic === topicId) {
-            currentTopic = topics[0].id;
-        }
-        
-        saveTopics();
-        renderTopics();
-        loadSavedImages();
+
+    if (!confirm('Are you sure you want to delete this topic?')) return;
+
+    state.topics = state.topics.filter(t => t.id !== topicId);
+    localStorage.removeItem(storageKeys.topicImages(topicId));
+
+    if (state.currentTopic === topicId) {
+        state.currentTopic = state.topics[0].id;
     }
+
+    saveTopics();
+    renderTopics();
+    loadImages('key');
+    updateTitle();
 }
 
-// Add topic button handler
-document.getElementById('addTopicBtn').addEventListener('click', addTopic);
+function initTopics() {
+    state.topics = JSON.parse(localStorage.getItem(storageKeys.topics) || '[]');
 
-// Load saved images on page load
-initTopics();
-
-// Handle logoboard events
-document.addEventListener('keydown', (e) => {
-    let keyElement = null;
-    
-    // Special handling for different key types
-    if (e.key === ' ') {
-        keyElement = keyMap.get(' ');
-    } else if (e.code === 'ShiftLeft') {
-        keyElement = keyMap.get('shiftleft');
-    } else if (e.code === 'ShiftRight') {
-        keyElement = keyMap.get('shiftright');
-    } else if (e.code === 'ControlLeft') {
-        keyElement = keyMap.get('controlleft');
-    } else if (e.code === 'ControlRight') {
-        keyElement = keyMap.get('controlright');
-    } else if (e.code === 'AltLeft') {
-        keyElement = keyMap.get('altleft');
-    } else if (e.code === 'AltRight') {
-        keyElement = keyMap.get('altright');
-    } else if (e.code === 'MetaLeft') {
-        keyElement = keyMap.get('metaleft');
-    } else if (e.code === 'MetaRight') {
-        keyElement = keyMap.get('metaright');
-    } else {
-        keyElement = keyMap.get(e.key.toLowerCase());
+    if (state.topics.length === 0) {
+        state.topics.push({ id: Date.now(), name: 'Default' });
+        saveTopics();
     }
-    
-    if (keyElement && !keyElement.classList.contains('active')) {
-        keyElement.classList.add('active');
-    }
-});
 
-document.addEventListener('keyup', (e) => {
-    let keyElement = null;
-    
-    // Special handling for different key types
-    if (e.key === ' ') {
-        keyElement = keyMap.get(' ');
-    } else if (e.code === 'ShiftLeft') {
-        keyElement = keyMap.get('shiftleft');
-    } else if (e.code === 'ShiftRight') {
-        keyElement = keyMap.get('shiftright');
-    } else if (e.code === 'ControlLeft') {
-        keyElement = keyMap.get('controlleft');
-    } else if (e.code === 'ControlRight') {
-        keyElement = keyMap.get('controlright');
-    } else if (e.code === 'AltLeft') {
-        keyElement = keyMap.get('altleft');
-    } else if (e.code === 'AltRight') {
-        keyElement = keyMap.get('altright');
-    } else if (e.code === 'MetaLeft') {
-        keyElement = keyMap.get('metaleft');
-    } else if (e.code === 'MetaRight') {
-        keyElement = keyMap.get('metaright');
-    } else {
-        keyElement = keyMap.get(e.key.toLowerCase());
-    }
-    
-    if (keyElement) {
-        keyElement.classList.remove('active');
-    }
-});
+    state.currentTopic = state.topics[0].id;
+    renderTopics();
+    loadImages('key');
+    updateTitle();
+}
 
-// Handle mouse clicks
-keys.forEach(key => {
-    key.addEventListener('mousedown', () => {
-        key.classList.add('active');
-    });
-    
-    key.addEventListener('mouseup', () => {
-        key.classList.remove('active');
-    });
-    
-    key.addEventListener('mouseleave', () => {
-        key.classList.remove('active');
-    });
-    
-    // Double-click to upload image
-    key.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        currentElementForImage = key;
-        currentElementType = 'key';
-        fileInput.click();
-    });
-    
-    // Right-click to reset to original
-    key.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        resetKeyToOriginal(key);
-    });
-});
+function getPressedKeyElement(e) {
+    const specialMap = {
+        ' ': ' ',
+        ShiftLeft: 'shiftleft',
+        ShiftRight: 'shiftright',
+        ControlLeft: 'controlleft',
+        ControlRight: 'controlright',
+        AltLeft: 'altleft',
+        AltRight: 'altright',
+        MetaLeft: 'metaleft',
+        MetaRight: 'metaright'
+    };
 
-// Handle file selection
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0] && currentElementForImage) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = (event) => {
-            const imgUrl = event.target.result;
-            
-            if (currentElementType === 'key') {
-                keyImages.set(currentElementForImage, imgUrl);
-                applyImageToKey(currentElementForImage, imgUrl);
-                saveImagesToStorage();
-            } else if (currentElementType === 'calcBtn') {
-                calcBtnImages.set(currentElementForImage, imgUrl);
-                applyImageToCalcBtn(currentElementForImage, imgUrl);
-                saveCalcBtnImagesToStorage();
-            }
-        };
-        
-        reader.readAsDataURL(file);
-    }
-    // Reset file input
-    fileInput.value = '';
-});
+    const keyName = e.key === ' '
+        ? ' '
+        : specialMap[e.code] || e.key.toLowerCase();
 
-// ============================================
-// CALCULATOR FUNCTIONALITY
-// ============================================
+    return keyMap.get(keyName);
+}
 
-let currentMode = 'logoboard'; // 'logoboard' or 'calculator'
-let calcDisplay = null;
-let currentValue = '0';
-let previousValue = null;
-let operation = null;
-let shouldResetDisplay = false;
+function setActiveKey(e, isActive) {
+    const keyEl = getPressedKeyElement(e);
+    if (keyEl) keyEl.classList.toggle('active', isActive);
+}
 
-// Initialize calculator when DOM is ready
-function initCalculator() {
-    calcDisplay = document.getElementById('calcDisplay');
-    const calcButtons = document.querySelectorAll('.calc-btn');
-    
-    // Store original content for each button
-    calcButtons.forEach(btn => {
-        calcBtnOriginalContent.set(btn, btn.innerHTML);
-    });
-    
-    calcButtons.forEach(button => {
-        button.addEventListener('click', handleCalculatorClick);
-        
-        // Double-click to upload image
-        button.addEventListener('dblclick', (e) => {
+function setupImageableElements(elements, type, clickHandler = null) {
+    elements.forEach(el => {
+        if (clickHandler) el.addEventListener('click', clickHandler);
+
+        el.addEventListener('dblclick', e => {
             e.preventDefault();
             e.stopPropagation();
-            currentElementForImage = button;
-            currentElementType = 'calcBtn';
+            state.currentElementForImage = el;
+            state.currentElementType = type;
             fileInput.click();
         });
-        
-        // Right-click to reset to original
-        button.addEventListener('contextmenu', (e) => {
+
+        el.addEventListener('contextmenu', e => {
             e.preventDefault();
             e.stopPropagation();
-            resetCalcBtnToOriginal(button);
+            resetElement(el, type);
         });
+
+        if (type === 'key') {
+            el.addEventListener('mousedown', () => el.classList.add('active'));
+            el.addEventListener('mouseup', () => el.classList.remove('active'));
+            el.addEventListener('mouseleave', () => el.classList.remove('active'));
+        }
     });
-    
-    // Load saved images
-    loadSavedCalcBtnImages();
 }
 
-// Handle calculator button clicks
-function handleCalculatorClick(e) {
-    const button = e.target;
-    const action = button.getAttribute('data-action');
-    const value = button.getAttribute('data-value');
-    
-    if (value !== null) {
-        handleNumber(value);
-    } else if (action) {
-        handleAction(action);
-    }
-}
-
-// Handle number inputs
-function handleNumber(num) {
-    // If the display shows an error, reset it
-    if (currentValue === 'Error') {
-        currentValue = num === '.' ? '0.' : num;
-        shouldResetDisplay = false;
-        updateDisplay();
-        return;
-    }
-    
-    // If we should reset display and it's not a parenthesis
-    if (shouldResetDisplay && num !== '(' && num !== ')') {
-        currentValue = num === '.' ? '0.' : num;
-        shouldResetDisplay = false;
-        updateDisplay();
-        return;
-    }
-    
-    // If starting fresh with '0'
-    if (currentValue === '0' && num !== '.' && num !== '(' && num !== ')') {
-        currentValue = num;
-        updateDisplay();
-        return;
-    }
-    
-    // Append to current value
-    if (num === '.' && !shouldResetDisplay) {
-        // Check if we already have a decimal in the current number segment
-        const lastNumMatch = currentValue.match(/[\d.]+$/);
-        if (lastNumMatch && lastNumMatch[0].includes('.')) {
-            return; // Already has decimal
-        }
-    }
-    
-    currentValue += num;
-    shouldResetDisplay = false;
-    updateDisplay();
-}
-
-// Handle calculator actions
-function handleAction(action) {
-    const current = parseFloat(currentValue);
-    
-    switch(action) {
-        case 'clear':
-            currentValue = '0';
-            previousValue = null;
-            operation = null;
-            shouldResetDisplay = false;
-            break;
-            
-        case 'backspace':
-            if (currentValue.length > 1) {
-                currentValue = currentValue.slice(0, -1);
-            } else {
-                currentValue = '0';
-            }
-            break;
-            
-        case 'percent':
-            currentValue = (current / 100).toString();
-            break;
-            
-        case 'sin':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'sin(';
-            } else {
-                currentValue += 'sin(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'cos':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'cos(';
-            } else {
-                currentValue += 'cos(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'tan':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'tan(';
-            } else {
-                currentValue += 'tan(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'sqrt':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'sqrt(';
-            } else {
-                currentValue += 'sqrt(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'log':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'log(';
-            } else {
-                currentValue += 'log(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'ln':
-            if (currentValue === '0' || shouldResetDisplay) {
-                currentValue = 'ln(';
-            } else {
-                currentValue += 'ln(';
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'e':
-            currentValue = Math.E.toString();
-            shouldResetDisplay = true;
-            break;
-            
-        case 'pi':
-            currentValue = Math.PI.toString();
-            shouldResetDisplay = true;
-            break;
-            
-        case 'add':
-        case 'subtract':
-        case 'multiply':
-        case 'divide':
-        case 'power':
-            const opSymbol = action === 'add' ? '+' : 
-                            action === 'subtract' ? '-' : 
-                            action === 'multiply' ? '*' : 
-                            action === 'divide' ? '/' : '^';
-            
-            // Always append operator to build expression
-            if (currentValue === '0') {
-                currentValue = '0' + opSymbol;
-            } else {
-                currentValue += opSymbol;
-            }
-            shouldResetDisplay = false;
-            break;
-            
-        case 'equals':
-            // Always evaluate as an expression
-            try {
-                const result = evaluateExpression(currentValue);
-                currentValue = result.toString();
-                shouldResetDisplay = true;
-                previousValue = null;
-                operation = null;
-            } catch (e) {
-                console.error('Evaluation error:', e);
-                currentValue = 'Error';
-                shouldResetDisplay = true;
-                previousValue = null;
-                operation = null;
-            }
-            break;
-    }
-    
-    updateDisplay();
-}
-
-// Evaluate mathematical expressions with functions
-function evaluateExpression(expr) {
-    try {
-        // Handle simple number case
-        const simpleNum = parseFloat(expr);
-        if (!isNaN(simpleNum) && !/[a-z\(\)\+\-\*\/\^]/.test(expr)) {
-            return simpleNum;
-        }
-        
-        // Replace display symbols with JavaScript operators
-        let processedExpr = expr
-            .replace(/×/g, '*')
-            .replace(/÷/g, '/')
-            .replace(/−/g, '-')
-            .replace(/\^/g, '**');
-        
-        // Handle trig functions with degree to radian conversion
-        processedExpr = processedExpr.replace(/sin\(([^)]+)\)/g, (match, p1) => {
-            return `Math.sin((Math.PI/180)*(${p1}))`;
-        });
-        processedExpr = processedExpr.replace(/cos\(([^)]+)\)/g, (match, p1) => {
-            return `Math.cos((Math.PI/180)*(${p1}))`;
-        });
-        processedExpr = processedExpr.replace(/tan\(([^)]+)\)/g, (match, p1) => {
-            return `Math.tan((Math.PI/180)*(${p1}))`;
-        });
-        
-        // Handle other math functions
-        processedExpr = processedExpr.replace(/sqrt\(([^)]+)\)/g, (match, p1) => {
-            return `Math.sqrt(${p1})`;
-        });
-        processedExpr = processedExpr.replace(/log\(([^)]+)\)/g, (match, p1) => {
-            return `Math.log10(${p1})`;
-        });
-        processedExpr = processedExpr.replace(/ln\(([^)]+)\)/g, (match, p1) => {
-            return `Math.log(${p1})`;
-        });
-        
-        // Replace constants
-        processedExpr = processedExpr
-            .replace(/π/g, 'Math.PI')
-            .replace(/\be\b/g, 'Math.E');
-        
-        console.log('Original:', expr);
-        console.log('Processed:', processedExpr);
-        
-        // Safely evaluate the expression
-        const result = Function('"use strict"; return (' + processedExpr + ')')();
-        
-        if (isNaN(result) || !isFinite(result)) {
-            throw new Error('Invalid result');
-        }
-        
-        return result;
-    } catch (e) {
-        console.error('Expression evaluation error:', e);
-        console.error('Expression:', expr);
-        throw new Error('Invalid expression');
-    }
-}
-
-// Perform calculation
-function calculate() {
-    const prev = previousValue;
-    const current = parseFloat(currentValue);
-    let result;
-    
-    switch(operation) {
-        case 'add':
-            result = prev + current;
-            break;
-        case 'subtract':
-            result = prev - current;
-            break;
-        case 'multiply':
-            result = prev * current;
-            break;
-        case 'divide':
-            result = prev / current;
-            break;
-        case 'power':
-            result = Math.pow(prev, current);
-            break;
-        default:
-            return;
-    }
-    
-    currentValue = result.toString();
-    shouldResetDisplay = true;
-}
-
-// Update calculator display
 function updateDisplay() {
-    if (calcDisplay) {
-        // Check if it's an expression or error - show as-is
-        if (currentValue === 'Error' || /[a-z\(\)\+\-\*\/\^]/.test(currentValue)) {
-            calcDisplay.textContent = currentValue;
-        } else {
-            // Show numbers formatted
-            const displayValue = parseFloat(currentValue);
-            if (currentValue.includes('.') && currentValue.endsWith('.')) {
-                calcDisplay.textContent = currentValue;
-            } else if (!isNaN(displayValue)) {
-                // Round to avoid floating point errors
-                const rounded = Math.round(displayValue * 1000000000) / 1000000000;
-                calcDisplay.textContent = rounded.toString();
-            } else {
-                calcDisplay.textContent = currentValue;
-            }
+    if (!calcDisplay) return;
+
+    if (state.currentValue === 'Error' || /[a-z()+\-*/^]/.test(state.currentValue)) {
+        calcDisplay.textContent = state.currentValue;
+        return;
+    }
+
+    if (state.currentValue.includes('.') && state.currentValue.endsWith('.')) {
+        calcDisplay.textContent = state.currentValue;
+        return;
+    }
+
+    const num = parseFloat(state.currentValue);
+    calcDisplay.textContent = isNaN(num)
+        ? state.currentValue
+        : (Math.round(num * 1e9) / 1e9).toString();
+}
+
+function handleNumber(input) {
+    if (state.currentValue === 'Error') {
+        state.currentValue = input === '.' ? '0.' : input;
+        state.shouldResetDisplay = false;
+        return updateDisplay();
+    }
+
+    if (state.shouldResetDisplay && input !== '(' && input !== ')') {
+        state.currentValue = input === '.' ? '0.' : input;
+        state.shouldResetDisplay = false;
+        return updateDisplay();
+    }
+
+    if (state.currentValue === '0' && !['.', '(', ')'].includes(input)) {
+        state.currentValue = input;
+        return updateDisplay();
+    }
+
+    if (input === '.') {
+        const lastNumMatch = state.currentValue.match(/[\d.]+$/);
+        if (lastNumMatch?.[0].includes('.')) return;
+    }
+
+    state.currentValue += input;
+    state.shouldResetDisplay = false;
+    updateDisplay();
+}
+
+function evaluateExpression(expr) {
+    let processed = expr
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/−/g, '-')
+        .replace(/\^/g, '**')
+        .replace(/sin\(([^)]+)\)/g, 'Math.sin((Math.PI/180)*($1))')
+        .replace(/cos\(([^)]+)\)/g, 'Math.cos((Math.PI/180)*($1))')
+        .replace(/tan\(([^)]+)\)/g, 'Math.tan((Math.PI/180)*($1))')
+        .replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)')
+        .replace(/log\(([^)]+)\)/g, 'Math.log10($1)')
+        .replace(/ln\(([^)]+)\)/g, 'Math.log($1)')
+        .replace(/π/g, 'Math.PI')
+        .replace(/\be\b/g, 'Math.E');
+
+    const result = Function(`"use strict"; return (${processed})`)();
+    if (!isFinite(result) || isNaN(result)) throw new Error('Invalid expression');
+    return result;
+}
+
+function handleAction(action) {
+    const current = parseFloat(state.currentValue);
+
+    if (action === 'clear') {
+        state.currentValue = '0';
+        state.shouldResetDisplay = false;
+    } else if (action === 'backspace') {
+        state.currentValue = state.currentValue.length > 1
+            ? state.currentValue.slice(0, -1)
+            : '0';
+    } else if (action === 'percent') {
+        state.currentValue = (current / 100).toString();
+    } else if (functionActions.has(action)) {
+        state.currentValue =
+            state.currentValue === '0' || state.shouldResetDisplay
+                ? `${action}(`
+                : `${state.currentValue}${action}(`;
+        state.shouldResetDisplay = false;
+    } else if (action === 'e') {
+        state.currentValue = Math.E.toString();
+        state.shouldResetDisplay = true;
+    } else if (action === 'pi') {
+        state.currentValue = Math.PI.toString();
+        state.shouldResetDisplay = true;
+    } else if (action in operatorMap) {
+        state.currentValue =
+            state.currentValue === '0'
+                ? `0${operatorMap[action]}`
+                : `${state.currentValue}${operatorMap[action]}`;
+        state.shouldResetDisplay = false;
+    } else if (action === 'equals') {
+        try {
+            state.currentValue = evaluateExpression(state.currentValue).toString();
+            state.shouldResetDisplay = true;
+        } catch {
+            state.currentValue = 'Error';
+            state.shouldResetDisplay = true;
         }
     }
+
+    updateDisplay();
 }
 
-// Mode switching functionality
+function handleCalculatorClick(e) {
+    const button = e.currentTarget;
+    const { action, value } = button.dataset;
+
+    if (value != null) handleNumber(value);
+    else if (action) handleAction(action);
+}
+
 function switchMode() {
-    const logoboardContainer = document.getElementById('logoboardContainer');
-    const calculatorContainer = document.getElementById('calculatorContainer');
-    
-    if (currentMode === 'logoboard') {
-        logoboardContainer.style.display = 'none';
-        calculatorContainer.style.display = 'block';
-        currentMode = 'calculator';
-    } else {
-        logoboardContainer.style.display = 'block';
-        calculatorContainer.style.display = 'none';
-        currentMode = 'logoboard';
-    }
+    const logoboard = document.getElementById('logoboardContainer');
+    const calculator = document.getElementById('calculatorContainer');
+    const isLogoboard = state.currentMode === 'logoboard';
+
+    logoboard.style.display = isLogoboard ? 'none' : 'block';
+    calculator.style.display = isLogoboard ? 'block' : 'none';
+    state.currentMode = isLogoboard ? 'calculator' : 'logoboard';
 }
 
-// Initialize calculator
-initCalculator();
+function init() {
+    initTopics();
+    loadImages('calcBtn');
 
-// Add event listeners for mode switch buttons
-document.getElementById('modeSwitchBtn').addEventListener('click', switchMode);
-document.getElementById('modeSwitchBtn2').addEventListener('click', switchMode);
+    setupImageableElements(keys, 'key');
+    setupImageableElements(calcButtons, 'calcBtn', handleCalculatorClick);
+
+    document.addEventListener('keydown', e => setActiveKey(e, true));
+    document.addEventListener('keyup', e => setActiveKey(e, false));
+
+    fileInput.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        const el = state.currentElementForImage;
+        const type = state.currentElementType;
+
+        if (!file || !el || !type) return;
+
+        const reader = new FileReader();
+        reader.onload = event => {
+            const imgUrl = event.target.result;
+            getImageMap(type).set(el, imgUrl);
+            applyImage(el, imgUrl);
+            saveImages(type);
+        };
+        reader.readAsDataURL(file);
+
+        fileInput.value = '';
+    });
+
+    document.getElementById('addTopicBtn').addEventListener('click', addTopic);
+    document.getElementById('modeSwitchBtn').addEventListener('click', switchMode);
+    document.getElementById('modeSwitchBtn2').addEventListener('click', switchMode);
+
+    updateDisplay();
+}
+
+init();
