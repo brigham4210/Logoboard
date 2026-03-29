@@ -40,7 +40,7 @@ A visual, interactive logoboard application that allows you to customize keys wi
 
 ## Live Demo
 
-View the live version at: [https://brigham4210.github.io/Keyboard/](https://brigham4210.github.io/Keyboard/)
+View the live version at: [https://brigham4210.github.io/Keyboard/](https://brigham4210.github.io/LogoBoard/)
 
 ## Technologies Used
 
